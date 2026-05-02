@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earn Money Bot - Premium</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+    <script src='//libtl.com/sdk.js' data-zone='10952917' data-sdk='show_10952917'></script>
+
+    <style>
+        :root {
+            --bg-dark: #0b0e23;
+            --card-dark: #121633;
+            --accent: #a361ff;
+            --green: #00ffaa;
+            --border: #2a2f5a;
+            --orange: #ff9800;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: var(--bg-dark); color: white; display: flex; justify-content: center; }
+
+        .app-container {
+            width: 100%; max-width: 480px; background: linear-gradient(180deg, #161b3d 0%, #0b0e23 100%);
+            min-height: 100vh; position: relative; padding: 15px; border: 1px solid var(--border);
+            padding-bottom: 80px;
+        }
+
+        .top-header { text-align: center; padding: 15px 0 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .bot-name { color: var(--accent); font-weight: bold; font-size: 18px; letter-spacing: 1px; }
+
+        .balance-box {
+            background: rgba(255, 255, 255, 0.05); border: 1px solid #4d4dfc;
+            border-radius: 15px; padding: 15px; display: grid; grid-template-columns: 1fr 1fr 1fr;
+            text-align: center; margin: 20px 0;
+        }
+        .stat-label { font-size: 10px; color: #aaa; text-transform: uppercase; }
+        .stat-value { font-size: 14px; font-weight: bold; margin-top: 5px; }
+
+        .page { display: none; }
+        .active-page { display: block; animation: fadeIn 0.3s ease; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .content-card {
+            background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border);
+            border-radius: 15px; padding: 20px; text-align: center; margin-bottom: 15px;
+        }
+
+        .task-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
+        .task-stat-item { background: #1e244d; padding: 10px; border-radius: 10px; border: 1px solid var(--border); }
+        
+        .progress-container { width: 100%; background: #2a2f5a; height: 10px; border-radius: 5px; margin-top: 10px; overflow: hidden; }
+        .progress-bar { height: 100%; background: linear-gradient(90deg, var(--accent), var(--green)); width: 0%; transition: 0.5s; }
+
+        .btn-action {
+            width: 100%; padding: 14px; margin-top: 15px; border: none; border-radius: 10px;
+            background: linear-gradient(90deg, #6e48ff, #4d4dfc); color: white;
+            font-weight: bold; cursor: pointer; font-size: 16px; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .btn-action:active { transform: scale(0.98); }
+        .btn-action:disabled { background: #333; color: #777; cursor: not-allowed; border: 1px solid #444; }
+
+        .loader { width: 18px; height: 18px; border: 2px solid #FFF; border-bottom-color: transparent; border-radius: 50%; display: none; animation: rotation 1s linear infinite; }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .footer-nav {
+            position: fixed; bottom: 0; width: 100%; max-width: 480px;
+            background: #111432; display: flex; justify-content: space-around;
+            padding: 12px 0 20px; border-top: 1px solid var(--border);
+        }
+        .nav-link { text-align: center; color: #888; font-size: 11px; cursor: pointer; flex: 1; }
+        .nav-link.active { color: var(--accent); }
+        .nav-link i { display: block; font-size: 18px; margin-bottom: 5px; }
+
+        .duck-image { width: 80px; margin: 10px auto; display: block; }
+        .bonus-text { color: var(--green); font-size: 12px; margin-top: 10px; font-weight: bold; }
+
+        select, input {
+            width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border);
+            background: #1e244d; color: white; outline: none; font-size: 14px;
+        }
+        .input-group label { display: block; font-size: 12px; color: #aaa; margin-bottom: 5px; text-align: left; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="top-header">
+        <div class="bot-name">MyEarningBot <i class="fas fa-circle-check" style="font-size: 14px;"></i></div>
+    </div>
+
+    <div class="balance-box">
+        <div>
+            <div class="stat-label">User ID</div>
+            <div class="stat-value" id="user-id-display">1808852807</div>
+        </div>
+        <div>
+            <div class="stat-label">Balance</div>
+            <div class="stat-value" style="color: var(--green);" id="balance">0.00 BDT</div>
+        </div>
+        <div>
+            <div class="stat-label">Invite</div>
+            <div class="stat-value" id="invite-count-stat">0</div>
+        </div>
+    </div>
+
+    <div id="task-page" class="page active-page">
+        <div class="content-card">
+            <div style="background: rgba(163, 97, 255, 0.1); padding: 10px; border-radius: 10px; margin-bottom: 15px;">
+                <h3 style="color: var(--accent);"><i class="fas fa-bolt"></i> Premium Tasks</h3>
+            </div>
+            <p style="font-size: 13px; color: #aaa;">ভিডিও অ্যাড দেখে প্রতিদিন ইনকাম করুন।</p>
+            
+            <div class="task-info-grid">
+                <div class="task-stat-item">
+                    <div class="stat-label">Tasks Done</div>
+                    <div class="stat-value" id="task-count">0/30</div>
+                </div>
+                <div class="task-stat-item">
+                    <div class="stat-label">Reward/Ad</div>
+                    <div class="stat-value" style="color: var(--green);">2.50 BDT</div>
+                </div>
+            </div>
+
+            <div style="text-align: left;">
+                <div class="stat-label">Overall Progress</div>
+                <div class="progress-container">
+                    <div class="progress-bar" id="task-progress"></div>
+                </div>
+            </div>
+
+            <button class="btn-action" id="watch-btn" onclick="watchAd()">
+                <span id="btn-text"><i class="fas fa-play-circle"></i> Watch Ad Now</span>
+                <span class="loader" id="btn-loader"></span>
+            </button>
+            <p id="ad-timer-msg" style="font-size: 11px; color: var(--orange); margin-top: 10px; display: none;">Please wait for the ad to finish...</p>
+        </div>
+
+        <div class="content-card" style="border: 1px dashed var(--accent);">
+            <p style="font-size: 12px; color: #aaa;"><i class="fas fa-info-circle"></i> প্রতিদিন রাত ১২টায় টাস্ক লিমিট রিসেট করা হয়।</p>
+        </div>
+    </div>
+
+    <div id="cards-page" class="page">
+        <div class="content-card">
+            <h3 style="margin-bottom: 10px;">📅 Daily Login Bonus</h3>
+            <p style="font-size: 13px; color: #aaa;">প্রতিদিন ১ বার বোনাস সংগ্রহ করুন।</p>
+            <div class="bonus-text" style="font-size: 22px; margin: 15px 0;">💰 ১.২৫ BDT</div>
+            <img src="https://cdn-icons-png.flaticon.com/512/3112/3112946.png" class="duck-image">
+            <button id="login-bonus-btn" class="btn-action" onclick="claimDailyBonus()">
+                <i class="fas fa-gift"></i> Claim Bonus
+            </button>
+        </div>
+    </div>
+
+    <div id="invite-page" class="page">
+        <div class="content-card">
+            <h3 style="margin-bottom: 10px;">👫 Invite Friends</h3>
+            <p style="font-size: 13px; color: #aaa;">বন্ধুদের ইনভাইট করলেই পাচ্ছেন বোনাস!</p>
+            <div class="bonus-text">💰 প্রতি ইনভাইটে ৫.৬০ টাকা</div>
+            <input type="text" id="bot-link" value="Loading link..." readonly style="margin-top:15px; color: var(--accent); text-align: center;">
+            <button class="btn-action" onclick="copyLink()">
+                <i class="fas fa-copy"></i> Copy Invite Link
+            </button>
+        </div>
+    </div>
+
+    <div id="withdraw-page" class="page">
+        <div class="content-card">
+            <h3 style="margin-bottom: 10px;">Withdraw Funds</h3>
+            <div class="input-group">
+                <label>পেমেন্ট মেথড</label>
+                <select id="method">
+                    <option value="Bkash">Bkash</option>
+                    <option value="Nagad">Nagad</option>
+                </select>
+            </div>
+            <div class="input-group" style="margin-top: 10px;">
+                <label>বিকাশ/নগদ নাম্বার</label>
+                <input type="number" id="phone" placeholder="017XXXXXXXX">
+            </div>
+            <div class="input-group" style="margin-top: 10px;">
+                <label>পরিমাণ (Min 500)</label>
+                <input type="number" id="amount" placeholder="500">
+            </div>
+            <button class="btn-action" onclick="handleWithdraw()">
+                <i class="fas fa-money-check-alt"></i> Submit Withdrawal
+            </button>
+        </div>
+    </div>
+
+    <div class="footer-nav">
+        <div class="nav-link active" onclick="showPage('task-page', this)"><i class="fas fa-tasks"></i>TASK</div>
+        <div class="nav-link" onclick="showPage('cards-page', this)"><i class="fas fa-ticket-alt"></i>CARDS</div>
+        <div class="nav-link" onclick="showPage('invite-page', this)"><i class="fas fa-users"></i>INVITE</div>
+        <div class="nav-link" onclick="showPage('withdraw-page', this)"><i class="fas fa-wallet"></i>WITHDRAW</div>
+    </div>
+</div>
+
+<script>
+    // Firebase Initialization
+    const firebaseConfig = {
+        apiKey: "AIzaSyAXyz1Zo8t6I_z3L2PqFs8_kwiaXAJliQc",
+        authDomain: "earning-bot-ads7.firebaseapp.com",
+        databaseURL: "https://earning-bot-ads7-default-rtdb.firebaseio.com",
+        projectId: "earning-bot-ads7",
+        storageBucket: "earning-bot-ads7.firebasestorage.app",
+        messagingSenderId: "1076607509010",
+        appId: "1:1076607509010:web:e68ed7bfcd5e3b19e6eecb"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    let userId = "1808852807"; 
+    let userData = {
+        balance: 0.00,
+        invites: 0,
+        lastBonus: "",
+        tasksDone: 0,
+        lastTaskDate: ""
+    };
+
+    window.onload = function() {
+        loadUserData();
+        document.getElementById('user-id-display').innerText = userId;
+        document.getElementById('bot-link').value = `http://t.me/earning40_bot?start=${userId}`;
+    };
+
+    function loadUserData() {
+        database.ref('users/' + userId).on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                userData = data;
+                const today = new Date().toDateString();
+                if(userData.lastTaskDate !== today) {
+                    userData.tasksDone = 0;
+                    userData.lastTaskDate = today;
+                    database.ref('users/' + userId).update({ tasksDone: 0, lastTaskDate: today });
+                }
+                updateUI();
+                checkBonusStatus();
+            } else {
+                database.ref('users/' + userId).set(userData);
+            }
+        });
+    }
+
+    function updateUI() {
+        document.getElementById('balance').innerText = userData.balance.toFixed(2) + " BDT";
+        document.getElementById('invite-count-stat').innerText = userData.invites;
+        document.getElementById('task-count').innerText = userData.tasksDone + "/30";
+        let progress = (userData.tasksDone / 30) * 100;
+        document.getElementById('task-progress').style.width = progress + "%";
+        
+        if(userData.tasksDone >= 30) {
+            document.getElementById('watch-btn').disabled = true;
+            document.getElementById('btn-text').innerText = "Limit Reached!";
+        }
+    }
+
+    function watchAd() {
+        if(userData.tasksDone >= 30) return;
+
+        // SDK বিজ্ঞাপন দেখানোর ফাংশন কল করা হলো
+        if (typeof show_10952917 === 'function') {
+            show_10952917().then(() => {
+                // বিজ্ঞাপন সফলভাবে শেষ হলে রিওয়ার্ড যোগ হবে
+                userData.balance += 2.50;
+                userData.tasksDone += 1;
+                
+                database.ref('users/' + userId).update({
+                    balance: userData.balance,
+                    tasksDone: userData.tasksDone
+                }).then(() => {
+                    alert("সাফল্য! ২.৫০ টাকা আপনার অ্যাকাউন্টে যোগ করা হয়েছে।");
+                });
+            }).catch((err) => {
+                alert("বিজ্ঞাপন লোড হতে সমস্যা হয়েছে। আবার চেষ্টা করুন।");
+            });
+        } else {
+            // যদি SDK লোড না হয় তবে লোকাল ফলব্যাক (৫ সেকেন্ডের টাইমার)
+            const btn = document.getElementById('watch-btn');
+            btn.disabled = true;
+            document.getElementById('btn-loader').style.display = "inline-block";
+            document.getElementById('btn-text').innerText = "Ad Playing...";
+
+            setTimeout(() => {
+                userData.balance += 2.50;
+                userData.tasksDone += 1;
+                database.ref('users/' + userId).update({
+                    balance: userData.balance,
+                    tasksDone: userData.tasksDone
+                }).then(() => {
+                    btn.disabled = false;
+                    document.getElementById('btn-loader').style.display = "none";
+                    document.getElementById('btn-text').innerHTML = '<i class="fas fa-play-circle"></i> Watch Ad Now';
+                    alert("সাফল্য! ২.৫০ টাকা যোগ করা হয়েছে।");
+                });
+            }, 5000);
+        }
+    }
+
+    function showPage(pageId, element) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
+        document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active-page');
+        element.classList.add('active');
+    }
+
+    function checkBonusStatus() {
+        const today = new Date().toDateString();
+        const btn = document.getElementById('login-bonus-btn');
+        if (userData.lastBonus === today) {
+            btn.disabled = true;
+            btn.innerText = "Already Claimed Today";
+        }
+    }
+
+    function claimDailyBonus() {
+        const today = new Date().toDateString();
+        if (userData.lastBonus === today) return;
+
+        userData.balance += 1.25;
+        userData.lastBonus = today;
+        
+        database.ref('users/' + userId).update(userData).then(() => {
+            alert("সফল! ১.২৫ টাকা বোনাস পেয়েছেন।");
+        });
+    }
+
+    function handleWithdraw() {
+        let amount = parseFloat(document.getElementById('amount').value);
+        let phone = document.getElementById('phone').value;
+
+        if (amount < 500 || isNaN(amount)) {
+            alert("মিনিমাম ৫০০ টাকা উইথড্র করতে হবে।");
+            return;
+        }
+        if (amount > userData.balance) {
+            alert("আপনার ব্যালেন্স পর্যাপ্ত নয়!");
+            return;
+        }
+
+        const withdrawRef = database.ref('withdrawals').push();
+        withdrawRef.set({
+            userId: userId,
+            amount: amount,
+            phone: phone,
+            method: document.getElementById('method').value,
+            status: "Pending",
+            timestamp: Date.now()
+        }).then(() => {
+            userData.balance -= amount;
+            database.ref('users/' + userId).update({ balance: userData.balance });
+            alert("উইথড্র রিকোয়েস্ট সফল হয়েছে!");
+        });
+    }
+
+    function copyLink() {
+        let copyText = document.getElementById("bot-link");
+        copyText.select();
+        navigator.clipboard.writeText(copyText.value);
+        alert("লিঙ্ক কপি করা হয়েছে!");
+    }
+</script>
+
+</body>
+</html>
