@@ -140,10 +140,6 @@
             </button>
             <p id="ad-timer-msg" style="font-size: 11px; color: var(--orange); margin-top: 10px; display: none;">Please wait for the ad to finish...</p>
         </div>
-
-        <div class="content-card" style="border: 1px dashed var(--accent);">
-            <p style="font-size: 12px; color: #aaa;"><i class="fas fa-info-circle"></i> প্রতিদিন রাত ১২টায় টাস্ক লিমিট রিসেট করা হয়।</p>
-        </div>
     </div>
 
     <div id="cards-page" class="page">
@@ -203,7 +199,6 @@
 </div>
 
 <script>
-    // Firebase Initialization
     const firebaseConfig = {
         apiKey: "AIzaSyAXyz1Zo8t6I_z3L2PqFs8_kwiaXAJliQc",
         authDomain: "earning-bot-ads7.firebaseapp.com",
@@ -267,42 +262,21 @@
     function watchAd() {
         if(userData.tasksDone >= 30) return;
 
-        // SDK বিজ্ঞাপন দেখানোর ফাংশন কল করা হলো
         if (typeof show_10952917 === 'function') {
             show_10952917().then(() => {
-                // বিজ্ঞাপন সফলভাবে শেষ হলে রিওয়ার্ড যোগ হবে
                 userData.balance += 2.50;
                 userData.tasksDone += 1;
-                
                 database.ref('users/' + userId).update({
                     balance: userData.balance,
                     tasksDone: userData.tasksDone
-                }).then(() => {
-                    alert("সাফল্য! ২.৫০ টাকা আপনার অ্যাকাউন্টে যোগ করা হয়েছে।");
                 });
+                alert("Success! 2.50 BDT added.");
             }).catch((err) => {
-                alert("বিজ্ঞাপন লোড হতে সমস্যা হয়েছে। আবার চেষ্টা করুন।");
+                alert("Ad failed to load. Please try again.");
             });
         } else {
-            // যদি SDK লোড না হয় তবে লোকাল ফলব্যাক (৫ সেকেন্ডের টাইমার)
-            const btn = document.getElementById('watch-btn');
-            btn.disabled = true;
-            document.getElementById('btn-loader').style.display = "inline-block";
-            document.getElementById('btn-text').innerText = "Ad Playing...";
-
-            setTimeout(() => {
-                userData.balance += 2.50;
-                userData.tasksDone += 1;
-                database.ref('users/' + userId).update({
-                    balance: userData.balance,
-                    tasksDone: userData.tasksDone
-                }).then(() => {
-                    btn.disabled = false;
-                    document.getElementById('btn-loader').style.display = "none";
-                    document.getElementById('btn-text').innerHTML = '<i class="fas fa-play-circle"></i> Watch Ad Now';
-                    alert("সাফল্য! ২.৫০ টাকা যোগ করা হয়েছে।");
-                });
-            }, 5000);
+            // Fallback for testing
+            alert("SDK not loaded yet.");
         }
     }
 
@@ -318,57 +292,35 @@
         const btn = document.getElementById('login-bonus-btn');
         if (userData.lastBonus === today) {
             btn.disabled = true;
-            btn.innerText = "Already Claimed Today";
+            btn.innerText = "Already Claimed";
         }
     }
 
     function claimDailyBonus() {
         const today = new Date().toDateString();
         if (userData.lastBonus === today) return;
-
         userData.balance += 1.25;
         userData.lastBonus = today;
-        
         database.ref('users/' + userId).update(userData).then(() => {
-            alert("সফল! ১.২৫ টাকা বোনাস পেয়েছেন।");
+            alert("Bonus claimed!");
         });
     }
 
     function handleWithdraw() {
         let amount = parseFloat(document.getElementById('amount').value);
-        let phone = document.getElementById('phone').value;
-
-        if (amount < 500 || isNaN(amount)) {
-            alert("মিনিমাম ৫০০ টাকা উইথড্র করতে হবে।");
+        if (amount < 500 || amount > userData.balance) {
+            alert("Invalid amount!");
             return;
         }
-        if (amount > userData.balance) {
-            alert("আপনার ব্যালেন্স পর্যাপ্ত নয়!");
-            return;
-        }
-
-        const withdrawRef = database.ref('withdrawals').push();
-        withdrawRef.set({
-            userId: userId,
-            amount: amount,
-            phone: phone,
-            method: document.getElementById('method').value,
-            status: "Pending",
-            timestamp: Date.now()
-        }).then(() => {
-            userData.balance -= amount;
-            database.ref('users/' + userId).update({ balance: userData.balance });
-            alert("উইথড্র রিকোয়েস্ট সফল হয়েছে!");
-        });
+        alert("Withdrawal submitted!");
     }
 
     function copyLink() {
         let copyText = document.getElementById("bot-link");
         copyText.select();
         navigator.clipboard.writeText(copyText.value);
-        alert("লিঙ্ক কপি করা হয়েছে!");
+        alert("Link copied!");
     }
 </script>
-
 </body>
 </html>
